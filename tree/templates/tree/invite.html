@@ -1,0 +1,59 @@
+{% extends 'tree/base.html' %}
+{% block title %}Einladen – FamilyTree{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-envelope-plus"></i> Familienmitglied einladen</h1>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header fw-semibold">Neue Einladung versenden</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{{ form.email.label }}</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-send"></i> Einladung senden
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header fw-semibold">Gesendete Einladungen</div>
+      {% if invitations %}
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>E-Mail</th><th>Gesendet</th><th>Läuft ab</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for inv in invitations %}
+            <tr>
+              <td>{{ inv.email }}</td>
+              <td>{{ inv.created_at|date:"d.m.Y" }}</td>
+              <td>{{ inv.expires_at|date:"d.m.Y" }}</td>
+              <td>
+                {% if inv.used %}
+                  <span class="badge bg-success">Registriert</span>
+                {% elif inv.expires_at < now %}
+                  <span class="badge bg-danger">Abgelaufen</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Offen</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-muted">Noch keine Einladungen versendet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

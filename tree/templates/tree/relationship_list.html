@@ -1,0 +1,118 @@
+{% extends 'tree/base.html' %}
+{% block title %}Beziehungen – {{ person.full_name }} – FamilyTree{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'person_detail' person.pk %}">{{ person.full_name }}</a></li>
+      <li class="breadcrumb-item active">Beziehungen</li>
+    </ol>
+  </nav>
+  <div class="d-flex justify-content-between align-items-center">
+    <h1 class="h3"><i class="bi bi-link-45deg"></i> Beziehungen von {{ person.full_name }}</h1>
+    <a href="{% url 'relationship_create' person.pk %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg"></i> Neue Beziehung
+    </a>
+  </div>
+</div>
+
+{% if relationships %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Beziehung</th>
+          <th>Person</th>
+          <th>Heirat</th>
+          <th>Heiratsort</th>
+          <th>Scheidung</th>
+          <th>Anmerkung</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in relationships %}
+        <tr>
+          <td>
+            {% if item.rel.relation_type == 'partner' %}
+              <span class="badge bg-danger">♥ Partner</span>
+            {% elif item.rel.relation_type == 'parent' %}
+              {% if item.side == 'from' %}
+                <span class="badge bg-primary">Elternteil von</span>
+              {% else %}
+                <span class="badge bg-info text-dark">Kind von</span>
+              {% endif %}
+            {% elif item.rel.relation_type == 'adoptive' %}
+              {% if item.side == 'from' %}
+                <span class="badge bg-primary">Adoptiv-Elternteil von</span>
+              {% else %}
+                <span class="badge bg-info text-dark">Adoptivkind von</span>
+              {% endif %}
+            {% elif item.rel.relation_type == 'sibling' %}
+              <span class="badge bg-warning text-dark">Geschwister</span>
+            {% elif item.rel.relation_type == 'half' %}
+              <span class="badge bg-warning text-dark">Halbgeschwister</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'person_detail' item.other.pk %}" class="fw-semibold text-decoration-none">
+              {{ item.other.full_name }}
+            </a>
+            {% if item.other.birth_year %}
+              <span class="text-muted small"> *{{ item.other.birth_year }}</span>
+            {% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if item.rel.marriage_date %}
+              {{ item.rel.marriage_date|date:"d.m.Y" }}
+            {% elif item.rel.relation_type == 'partner' %}
+              <span class="text-muted">–</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.rel.marriage_place %}
+              {{ item.rel.marriage_place }}
+            {% elif item.rel.relation_type == 'partner' %}
+              <span class="text-muted">–</span>
+            {% endif %}
+          </td>
+          <td class="text-nowrap">
+            {% if item.rel.divorce_date %}
+              {{ item.rel.divorce_date|date:"d.m.Y" }}
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ item.rel.note }}</td>
+          <td class="text-end text-nowrap">
+            <a href="{% url 'relationship_edit' item.rel.pk %}?person={{ person.pk }}"
+               class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-pencil"></i> Bearbeiten
+            </a>
+            <a href="{% url 'relationship_delete' item.rel.pk %}?person={{ person.pk }}"
+               class="btn btn-outline-danger btn-sm ms-1">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-link-45deg display-1"></i>
+  <p class="mt-3">Noch keine Beziehungen eingetragen.</p>
+  <a href="{% url 'relationship_create' person.pk %}" class="btn btn-primary mt-2">
+    Erste Beziehung hinzufügen
+  </a>
+</div>
+{% endif %}
+
+<div class="mt-3">
+  <a href="{% url 'person_detail' person.pk %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Zurück zum Profil
+  </a>
+</div>
+{% endblock %}

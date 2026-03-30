@@ -1,0 +1,152 @@
+{% extends 'tree/base.html' %}
+{% block title %}Dashboard – FamilyTree{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3"><i class="bi bi-house-heart"></i> Willkommen, {{ user.first_name|default:user.username }}!</h1>
+  <a href="{% url 'person_create' %}" class="btn btn-primary">
+    <i class="bi bi-person-plus"></i> Person hinzufügen
+  </a>
+</div>
+
+<!-- Statistiken -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="card text-center border-primary">
+      <div class="card-body">
+        <div class="display-4 text-primary fw-bold">{{ total_persons }}</div>
+        <div class="text-muted">Personen gesamt</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card text-center border-success">
+      <div class="card-body">
+        <div class="display-4 text-success fw-bold">{{ total_living }}</div>
+        <div class="text-muted">Lebende Mitglieder</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card text-center border-warning">
+      <div class="card-body">
+        <div class="display-4 text-warning fw-bold">{{ upcoming_birthdays|length }}</div>
+        <div class="text-muted">Geburtstage (30 Tage)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Geburtstage -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-warning text-dark fw-semibold">
+        <i class="bi bi-cake2"></i> Bevorstehende Geburtstage
+      </div>
+      <div class="card-body p-0">
+        {% if upcoming_birthdays %}
+        <ul class="list-group list-group-flush">
+          {% for item in upcoming_birthdays %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'person_detail' item.person.pk %}" class="text-decoration-none fw-semibold">
+              {{ item.person.full_name }}
+            </a>
+            <span>
+              {{ item.date|date:"d. F" }}
+              {% if item.days == 0 %}
+                <span class="badge bg-danger ms-1">Heute!</span>
+              {% elif item.days <= 7 %}
+                <span class="badge bg-warning text-dark ms-1">in {{ item.days }} Tagen</span>
+              {% else %}
+                <span class="badge bg-secondary ms-1">in {{ item.days }} Tagen</span>
+              {% endif %}
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted p-3 mb-0">Keine Geburtstage in den nächsten 30 Tagen.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Zuletzt hinzugefügt -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-primary text-white fw-semibold">
+        <i class="bi bi-clock-history"></i> Zuletzt hinzugefügt
+      </div>
+      <div class="card-body p-0">
+        {% if recent_persons %}
+        <ul class="list-group list-group-flush">
+          {% for person in recent_persons %}
+          <li class="list-group-item d-flex align-items-center gap-3">
+            {% if person.photo %}
+              <img src="{{ person.photo.url }}" class="rounded-circle" style="width:40px;height:40px;object-fit:cover">
+            {% else %}
+              <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                   style="width:40px;height:40px;font-size:16px">
+                <i class="bi bi-person"></i>
+              </div>
+            {% endif %}
+            <div>
+              <a href="{% url 'person_detail' person.pk %}" class="fw-semibold text-decoration-none">
+                {{ person.full_name }}
+              </a>
+              <div class="text-muted small">{{ person.created_at|date:"d.m.Y" }}</div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted p-3 mb-0">Noch keine Personen vorhanden.</p>
+        {% endif %}
+      </div>
+      <div class="card-footer text-end">
+        <a href="{% url 'person_list' %}" class="btn btn-sm btn-outline-primary">Alle anzeigen</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Schnellzugriff -->
+<div class="row g-3 mt-2">
+  <div class="col-12"><h5 class="text-muted">Schnellzugriff</h5></div>
+  <div class="col-sm-3">
+    <a href="{% url 'tree' %}" class="card text-center text-decoration-none h-100 card-hover">
+      <div class="card-body">
+        <i class="bi bi-diagram-3 display-5 text-primary"></i>
+        <div class="mt-2 fw-semibold">Stammbaum</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-sm-3">
+    <a href="{% url 'person_list' %}" class="card text-center text-decoration-none h-100 card-hover">
+      <div class="card-body">
+        <i class="bi bi-search display-5 text-success"></i>
+        <div class="mt-2 fw-semibold">Personen suchen</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-sm-3">
+    <a href="{% url 'person_create' %}" class="card text-center text-decoration-none h-100 card-hover">
+      <div class="card-body">
+        <i class="bi bi-person-plus display-5 text-warning"></i>
+        <div class="mt-2 fw-semibold">Person hinzufügen</div>
+      </div>
+    </a>
+  </div>
+  {% if user.family_profile.is_admin or user.is_staff %}
+  <div class="col-sm-3">
+    <a href="{% url 'invite' %}" class="card text-center text-decoration-none h-100 card-hover">
+      <div class="card-body">
+        <i class="bi bi-envelope-plus display-5 text-danger"></i>
+        <div class="mt-2 fw-semibold">Einladen</div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

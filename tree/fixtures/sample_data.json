@@ -1,0 +1,162 @@
+[
+  {
+    "model": "tree.person",
+    "pk": 1,
+    "fields": {
+      "first_name": "Heinrich",
+      "last_name": "Mustermann",
+      "birth_name": "",
+      "gender": "M",
+      "birth_date": "1940-03-15",
+      "birth_year_only": false,
+      "birth_place": "München",
+      "death_date": "2010-11-02",
+      "death_place": "München",
+      "occupation": "Schreiner",
+      "notes": "Großvater väterlicherseits. Hat das Haus in der Gartenstraße gebaut.",
+      "photo": null,
+      "user": null,
+      "created_by": null
+    }
+  },
+  {
+    "model": "tree.person",
+    "pk": 2,
+    "fields": {
+      "first_name": "Maria",
+      "last_name": "Mustermann",
+      "birth_name": "Huber",
+      "gender": "F",
+      "birth_date": "1943-07-22",
+      "birth_year_only": false,
+      "birth_place": "Augsburg",
+      "death_date": null,
+      "death_place": "",
+      "occupation": "Lehrerin (Rente)",
+      "notes": "Großmutter. Liebt das Backen und den Garten.",
+      "photo": null,
+      "user": null,
+      "created_by": null
+    }
+  },
+  {
+    "model": "tree.person",
+    "pk": 3,
+    "fields": {
+      "first_name": "Klaus",
+      "last_name": "Mustermann",
+      "birth_name": "",
+      "gender": "M",
+      "birth_date": "1968-05-10",
+      "birth_year_only": false,
+      "birth_place": "München",
+      "death_date": null,
+      "death_place": "",
+      "occupation": "Ingenieur",
+      "notes": "",
+      "photo": null,
+      "user": null,
+      "created_by": null
+    }
+  },
+  {
+    "model": "tree.person",
+    "pk": 4,
+    "fields": {
+      "first_name": "Sabine",
+      "last_name": "Mustermann",
+      "birth_name": "Schmidt",
+      "gender": "F",
+      "birth_date": "1970-09-03",
+      "birth_year_only": false,
+      "birth_place": "Hamburg",
+      "death_date": null,
+      "death_place": "",
+      "occupation": "Ärztin",
+      "notes": "",
+      "photo": null,
+      "user": null,
+      "created_by": null
+    }
+  },
+  {
+    "model": "tree.person",
+    "pk": 5,
+    "fields": {
+      "first_name": "Laura",
+      "last_name": "Mustermann",
+      "birth_name": "",
+      "gender": "F",
+      "birth_date": "1998-02-14",
+      "birth_year_only": false,
+      "birth_place": "München",
+      "death_date": null,
+      "death_place": "",
+      "occupation": "Studentin",
+      "notes": "",
+      "photo": null,
+      "user": null,
+      "created_by": null
+    }
+  },
+  {
+    "model": "tree.person",
+    "pk": 6,
+    "fields": {
+      "first_name": "Tim",
+      "last_name": "Mustermann",
+      "birth_name": "",
+      "gender": "M",
+      "birth_date": "2001-11-30",
+      "birth_year_only": false,
+      "birth_place": "München",
+      "death_date": null,
+      "death_place": "",
+      "occupation": "Schüler",
+      "notes": "",
+      "photo": null,
+      "user": null,
+      "created_by": null
+    }
+  },
+  {
+    "model": "tree.relationship",
+    "pk": 1,
+    "fields": { "from_person": 1, "to_person": 3, "relation_type": "parent", "note": "" }
+  },
+  {
+    "model": "tree.relationship",
+    "pk": 2,
+    "fields": { "from_person": 2, "to_person": 3, "relation_type": "parent", "note": "" }
+  },
+  {
+    "model": "tree.relationship",
+    "pk": 3,
+    "fields": { "from_person": 1, "to_person": 2, "relation_type": "partner", "note": "Verheiratet seit 1965" }
+  },
+  {
+    "model": "tree.relationship",
+    "pk": 4,
+    "fields": { "from_person": 3, "to_person": 4, "relation_type": "partner", "note": "Verheiratet seit 1995" }
+  },
+  {
+    "model": "tree.relationship",
+    "pk": 5,
+    "fields": { "from_person": 3, "to_person": 5, "relation_type": "parent", "note": "" }
+  },
+  {
+    "model": "tree.relationship",
+    "pk": 6,
+    "fields": { "from_person": 4, "to_person": 5, "relation_type": "parent", "note": "" }
+  },
+  {
+    "model": "tree.relationship",
+    "pk": 7,
+    "fields": { "from_person": 3, "to_person": 6, "relation_type": "parent", "note": "" }
+  },
+  {
+    "model": "tree.relationship",
+    "pk": 8,
+    "fields": { "from_person": 4, "to_person": 6, "relation_type": "parent", "note": "" }
+  }
+]

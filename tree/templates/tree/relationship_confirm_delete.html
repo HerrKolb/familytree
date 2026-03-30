@@ -1,0 +1,29 @@
+{% extends 'tree/base.html' %}
+{% block title %}Beziehung löschen – FamilyTree{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-center mt-4">
+  <div class="card border-danger shadow" style="max-width:480px;width:100%">
+    <div class="card-header bg-danger text-white fw-semibold">
+      <i class="bi bi-exclamation-triangle"></i> Beziehung löschen
+    </div>
+    <div class="card-body p-4 text-center">
+      <p class="fs-5 mb-1">Soll diese Beziehung wirklich gelöscht werden?</p>
+      <p class="fw-bold my-3">
+        {{ rel.from_person.full_name }}
+        <span class="badge bg-secondary mx-2">{{ rel.get_relation_type_display }}</span>
+        {{ rel.to_person.full_name }}
+      </p>
+      <form method="post" class="d-flex justify-content-center gap-3 mt-3">
+        {% csrf_token %}
+        <input type="hidden" name="person" value="{{ person.pk }}">
+        <button type="submit" class="btn btn-danger">
+          <i class="bi bi-trash"></i> Ja, löschen
+        </button>
+        <a href="{% url 'relationship_list' person.pk %}" class="btn btn-outline-secondary">
+          Abbrechen
+        </a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

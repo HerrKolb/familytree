@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FamilyTree{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'tree/css/main.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+      <i class="bi bi-tree"></i> FamilyTree
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+             href="{% url 'dashboard' %}"><i class="bi bi-house"></i> Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'tree' %}active{% endif %}"
+             href="{% url 'tree' %}"><i class="bi bi-diagram-3"></i> Stammbaum</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'person_list' %}active{% endif %}"
+             href="{% url 'person_list' %}"><i class="bi bi-search"></i> Suche</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'person_create' %}">
+            <i class="bi bi-person-plus"></i> Person hinzufügen
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'csv_import' %}active{% endif %}"
+             href="{% url 'csv_import' %}">
+            <i class="bi bi-file-earmark-spreadsheet"></i> CSV-Import
+          </a>
+        </li>
+        {% if user.family_profile.is_admin or user.is_staff %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.resolver_match.url_name == 'invite' %}active{% endif %}"
+             href="{% url 'invite' %}"><i class="bi bi-envelope-plus"></i> Einladen</a>
+        </li>
+        {% endif %}
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+            <i class="bi bi-person-circle"></i> {{ user.get_full_name|default:user.username }}
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{% url 'my_profile' %}"><i class="bi bi-person"></i> Mein Profil</a></li>
+            {% if user.is_staff %}
+            <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-gear"></i> Admin</a></li>
+            {% endif %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item text-danger">
+                  <i class="bi bi-box-arrow-right"></i> Abmelden
+                </button>
+              </form>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+{% endif %}
+
+<main class="container py-4">
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

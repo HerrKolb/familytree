@@ -1,0 +1,26 @@
+{% extends 'tree/base.html' %}
+{% block title %}Registrieren – FamilyTree{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-center mt-4">
+  <div class="card shadow" style="max-width:480px;width:100%">
+    <div class="card-body p-4">
+      <h2 class="h4 fw-bold text-center mb-1"><i class="bi bi-tree"></i> FamilyTree</h2>
+      <p class="text-center text-muted mb-4">Konto erstellen – eingeladen von {{ invitation.invited_by.get_full_name }}</p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors }}</div>{% endif %}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary w-100 mt-2">
+          <i class="bi bi-person-check"></i> Konto erstellen
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

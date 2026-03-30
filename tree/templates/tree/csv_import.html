@@ -1,0 +1,107 @@
+{% extends 'tree/base.html' %}
+{% block title %}CSV-Import – FamilyTree{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'person_list' %}">Personen</a></li>
+      <li class="breadcrumb-item active">CSV-Import</li>
+    </ol>
+  </nav>
+  <h1 class="h3"><i class="bi bi-file-earmark-spreadsheet"></i> Personen per CSV importieren</h1>
+</div>
+
+<div class="row g-4">
+
+  <!-- Upload-Formular -->
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header fw-semibold">CSV-Datei hochladen</div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{{ form.csv_file.label }}</label>
+            {{ form.csv_file }}
+            <div class="form-text">Erlaubte Formate: .csv · Trennzeichen: Komma oder Semikolon</div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">{{ form.encoding.label }}</label>
+            {{ form.encoding }}
+            <div class="form-text">Bei Problemen mit Umlauten: Latin-1 wählen</div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-upload"></i> Importieren
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hinweise & Beispiel -->
+  <div class="col-md-7">
+
+    <!-- Spalten-Übersicht -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold"><i class="bi bi-table"></i> Unterstützte Spalten</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Spaltenname</th><th>Pflicht</th><th>Format / Hinweis</th></tr></thead>
+          <tbody>
+            <tr><td><code>vorname</code></td><td><span class="badge bg-danger">Ja</span></td><td>Rufname</td></tr>
+            <tr><td><code>nachname</code></td><td><span class="badge bg-danger">Ja</span></td><td>Familienname</td></tr>
+            <tr><td><code>geburtsname</code></td><td><span class="badge bg-secondary">Nein</span></td><td>Falls abweichend</td></tr>
+            <tr><td><code>geschlecht</code></td><td><span class="badge bg-secondary">Nein</span></td><td>M / F / D (oder leer)</td></tr>
+            <tr><td><code>geburtsdatum</code></td><td><span class="badge bg-secondary">Nein</span></td><td>JJJJ-MM-TT oder TT.MM.JJJJ oder nur JJJJ</td></tr>
+            <tr><td><code>geburtsort</code></td><td><span class="badge bg-secondary">Nein</span></td><td>Freitext</td></tr>
+            <tr><td><code>sterbedatum</code></td><td><span class="badge bg-secondary">Nein</span></td><td>Gleiche Formate wie Geburtsdatum</td></tr>
+            <tr><td><code>sterbeort</code></td><td><span class="badge bg-secondary">Nein</span></td><td>Freitext</td></tr>
+            <tr><td><code>beruf</code></td><td><span class="badge bg-secondary">Nein</span></td><td>Freitext</td></tr>
+            <tr><td><code>notizen</code></td><td><span class="badge bg-secondary">Nein</span></td><td>Freitext</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Beispiel-CSV -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-file-text"></i> Beispiel-CSV</span>
+        <button class="btn btn-sm btn-outline-secondary" onclick="downloadExample()">
+          <i class="bi bi-download"></i> Herunterladen
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <pre class="p-3 mb-0 small bg-light" style="overflow-x:auto;font-size:0.75rem">{{ example_csv }}</pre>
+      </div>
+    </div>
+
+    <!-- Hinweise -->
+    <div class="alert alert-info mt-3">
+      <i class="bi bi-info-circle"></i>
+      <strong>Hinweise:</strong>
+      <ul class="mb-0 mt-1">
+        <li>Duplikate (gleicher Name + Geburtsdatum) werden automatisch übersprungen.</li>
+        <li>Zeilen ohne Vor- und Nachname werden übersprungen.</li>
+        <li>Verwandtschaftsbeziehungen können nach dem Import manuell eingetragen werden.</li>
+        <li>Englische Spaltennamen (<code>first_name</code>, <code>last_name</code> usw.) werden ebenfalls akzeptiert.</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function downloadExample() {
+  const csv = `{{ example_csv|escapejs }}`;
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'familytree_beispiel.csv';
+  a.click();
+}
+</script>
+{% endblock %}

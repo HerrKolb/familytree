@@ -1,0 +1,109 @@
+{% extends 'tree/base.html' %}
+{% block title %}{{ title }} – FamilyTree{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'person_list' %}">Personen</a></li>
+      {% if person %}
+      <li class="breadcrumb-item"><a href="{% url 'person_detail' person.pk %}">{{ person.full_name }}</a></li>
+      {% endif %}
+      <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+  </nav>
+  <h1 class="h3"><i class="bi bi-person-plus"></i> {{ title }}</h1>
+</div>
+
+<div class="card" style="max-width: 750px;">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      <!-- Schritt 1: Name & Stammdaten -->
+      <h5 class="fw-semibold mb-3 text-primary">① Name</h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-5">
+          <label class="form-label">{{ form.first_name.label }}</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors }}</div>{% endif %}
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">{{ form.last_name.label }}</label>
+          {{ form.last_name }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.birth_name.label }}</label>
+          {{ form.birth_name }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ form.gender.label }}</label>
+          {{ form.gender }}
+        </div>
+      </div>
+
+      <hr>
+      <!-- Schritt 2: Geburt & Tod -->
+      <h5 class="fw-semibold mb-3 text-primary">② Geburt &amp; Tod</h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label">{{ form.birth_date.label }}</label>
+          {{ form.birth_date }}
+        </div>
+        <div class="col-md-4 d-flex align-items-end pb-1">
+          <div class="form-check">
+            {{ form.birth_year_only }}
+            <label class="form-check-label">{{ form.birth_year_only.label }}</label>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.birth_place.label }}</label>
+          {{ form.birth_place }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.death_date.label }}</label>
+          {{ form.death_date }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ form.death_place.label }}</label>
+          {{ form.death_place }}
+        </div>
+      </div>
+
+      <hr>
+      <!-- Schritt 3: Weitere Infos -->
+      <h5 class="fw-semibold mb-3 text-primary">③ Weitere Infos &amp; Foto</h5>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label">{{ form.occupation.label }}</label>
+          {{ form.occupation }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.photo.label }}</label>
+          {{ form.photo }}
+          {% if person.photo %}
+            <div class="mt-2">
+              <img src="{{ person.photo.url }}" style="height:60px;border-radius:8px"> aktuelles Foto
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label">{{ form.notes.label }}</label>
+          {{ form.notes }}
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg"></i> Speichern
+        </button>
+        {% if person %}
+          <a href="{% url 'person_detail' person.pk %}" class="btn btn-outline-secondary">Abbrechen</a>
+        {% else %}
+          <a href="{% url 'person_list' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+/* FamilyTree – Hauptstylesheet */
+
+/* Karten-Hover-Effekt */
+.card-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  color: inherit;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  color: inherit;
+}
+
+/* Personen-Chips für Verwandtschaft */
+.person-chip {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 20px;
+  background: #e7f0fd;
+  color: #0d6efd;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #b6d0fb;
+  transition: background 0.15s;
+}
+.person-chip:hover { background: #cfe2ff; color: #0a58ca; }
+.person-chip.chip-partner  { background: #fce4ec; color: #c2185b; border-color: #f8bbd0; }
+.person-chip.chip-partner:hover { background: #f8bbd0; }
+.person-chip.chip-child    { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+.person-chip.chip-child:hover { background: #c8e6c9; }
+.person-chip.chip-sibling  { background: #fff8e1; color: #f57f17; border-color: #ffecb3; }
+.person-chip.chip-sibling:hover { background: #ffecb3; }
+
+/* Navbar aktiv */
+.navbar .nav-link.active {
+  font-weight: 600;
+  border-bottom: 2px solid white;
+}
+
+/* Formular-Trennlinien */
+hr { border-color: #e9ecef; margin: 1.5rem 0; }
+
+/* Bootstrap alert-Klassen für Django messages */
+.alert-error   { background-color: #f8d7da; border-color: #f5c2c7; color: #842029; }

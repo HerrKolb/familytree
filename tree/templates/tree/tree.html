@@ -1,0 +1,430 @@
+{% extends 'tree/base.html' %}
+{% block title %}Stammbaum – FamilyTree{% endblock %}
+
+{% block extra_css %}
+<style>
+  #tree-wrap {
+    width:100%; height:82vh;
+    border:1px solid #dee2e6; border-radius:8px;
+    background:#f8f9fa; overflow:hidden; position:relative;
+  }
+  #tree-svg { width:100%; height:100%; }
+  .p-node rect   { stroke-width:2; cursor:pointer; }
+  .p-node.male   rect { fill:#dbeafe; stroke:#3b82f6; }
+  .p-node.female rect { fill:#fce7f3; stroke:#ec4899; }
+  .p-node.other  rect { fill:#d1fae5; stroke:#10b981; }
+  .p-node.deceased rect { fill:#e5e7eb; stroke:#9ca3af; }
+  .p-node rect:hover { filter:drop-shadow(0 3px 8px rgba(0,0,0,.3)); }
+  .p-node text   { pointer-events:none; font-family:Arial,sans-serif; }
+  .f-node polygon { fill:#fef3c7; stroke:#f59e0b; stroke-width:2; }
+  .e-partner { stroke:#e94560; stroke-width:2; stroke-dasharray:6,3; fill:none; }
+  .e-parent  { stroke:#6b7280; stroke-width:1.8; fill:none; }
+  #tip {
+    position:absolute; pointer-events:none; display:none;
+    background:rgba(15,52,96,.92); color:#fff;
+    padding:7px 12px; border-radius:8px; font-size:13px;
+    line-height:1.5; max-width:200px;
+  }
+  .toolbar { position:absolute; top:10px; right:10px; display:flex; gap:6px; z-index:10; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3"><i class="bi bi-diagram-3"></i> Stammbaum</h1>
+</div>
+<div id="tree-wrap">
+  <div class="toolbar">
+    <button id="bzi"  class="btn btn-sm btn-light border"><i class="bi bi-zoom-in"></i></button>
+    <button id="bzo"  class="btn btn-sm btn-light border"><i class="bi bi-zoom-out"></i></button>
+    <button id="bfit" class="btn btn-sm btn-light border"><i class="bi bi-arrows-fullscreen"></i> Alles</button>
+    <div id="focus-badge"></div>
+    <div class="form-check form-switch d-flex align-items-center bg-white border rounded px-2 py-1 mb-0">
+      <input class="form-check-input me-1" type="checkbox" id="chk-dec" checked>
+      <label class="form-check-label small mb-0" for="chk-dec">Verstorbene</label>
+    </div>
+  </div>
+  <svg id="tree-svg"></svg>
+  <div id="tip"></div>
+</div>
+<div id="dbg" class="mt-2 p-2 bg-light border rounded small" style="font-size:11px;font-family:monospace">Lade Debug-Infos...</div>
+<div class="mt-2 d-flex gap-4 small text-muted flex-wrap">
+  <span><svg width="18" height="12"><rect x="1" y="2" width="16" height="8" rx="2" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/></svg> Mann</span>
+  <span><svg width="18" height="12"><rect x="1" y="2" width="16" height="8" rx="2" fill="#fce7f3" stroke="#ec4899" stroke-width="1.5"/></svg> Frau</span>
+  <span><svg width="18" height="12"><rect x="1" y="2" width="16" height="8" rx="2" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1.5"/></svg> Verstorben</span>
+  <span><svg width="16" height="12"><polygon points="8,1 15,6 8,11 1,6" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/></svg> Familie</span>
+  <span><svg width="30" height="12"><line x1="0" y1="6" x2="30" y2="6" stroke="#e94560" stroke-width="2" stroke-dasharray="5,3"/></svg> Partner</span>
+  <span><svg width="30" height="12"><line x1="0" y1="6" x2="30" y2="6" stroke="#6b7280" stroke-width="2"/></svg> Eltern–Kind</span>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+const PW=130, PH=46, FR=11, GY=140, PX=28;
+
+// ════════════════════════════════════════════════
+// LAYOUT  (Partner-Paar-first Sugiyama)
+// ════════════════════════════════════════════════
+function layout(raw) {
+  const pById={};
+  raw.nodes.forEach(n=>pById[n.id]=n);
+
+  const parOf={}, chOf={}, ptOf={};
+  raw.nodes.forEach(n=>{parOf[n.id]=[];chOf[n.id]=[];ptOf[n.id]=new Set();});
+  raw.links.forEach(l=>{
+    if(l.type==='parent'||l.type==='adoptive'){
+      chOf[l.source].push(l.target);
+      parOf[l.target].push(l.source);
+    }else if(l.type==='partner'){
+      ptOf[l.source].add(l.target);
+      ptOf[l.target].add(l.source);
+    }
+  });
+
+  // ── A: Generationen ─────────────────────────
+  const gen={};
+  const ids=raw.nodes.map(n=>n.id);
+  function calcGen(id,vis=new Set()){
+    if(gen[id]!==undefined)return gen[id];
+    if(vis.has(id))return 0;
+    vis.add(id);
+    const pg=parOf[id].map(p=>calcGen(p,new Set(vis)));
+    return gen[id]=pg.length?Math.max(...pg)+1:0;
+  }
+  ids.forEach(id=>calcGen(id));
+  let dirty=true;
+  while(dirty){
+    dirty=false;
+    ids.forEach(id=>ptOf[id].forEach(pid=>{
+      const g=Math.max(gen[id],gen[pid]);
+      if(gen[id]!==g||gen[pid]!==g){gen[id]=g;gen[pid]=g;dirty=true;}
+    }));
+  }
+
+  // ── B: Familien-Knoten ───────────────────────
+  const famMap={};
+  ids.forEach(cid=>{
+    const pars=parOf[cid]; if(!pars.length)return;
+    const key=pars.slice().sort().join('_');
+    if(!famMap[key])
+      famMap[key]={id:'FAM_'+key, parents:pars.slice().sort(), children:[], gen:gen[pars[0]]+0.5};
+    famMap[key].children.push(cid);
+  });
+  const fams=Object.values(famMap);
+  const famById={};
+  fams.forEach(f=>famById[f.id]=f);
+
+  // ── C: Ebenen ────────────────────────────────
+  const lvl={};
+  ids.forEach(id=>{const l=gen[id];(lvl[l]=lvl[l]||[]).push({k:'P',id});});
+  fams.forEach(f=>{const l=f.gen;(lvl[l]=lvl[l]||[]).push({k:'F',id:f.id});});
+  const sortedL=Object.keys(lvl).map(Number).sort((a,b)=>a-b);
+
+  // ── D: Partner-Paare identifizieren ──────────
+  // Jede Person gehört zu maximal einem "Slot" (Paar oder Einzel).
+  // Ein Slot ist: [person] oder [person, partner] — immer nebeneinander.
+  // Wir bauen Slots pro Generation.
+  const assigned=new Set();
+  const slotsByGen={};  // gen → [[id,...], ...]
+
+  sortedL.forEach(l=>{
+    if(l!==Math.floor(l))return; // Familien-Ebenen überspringen
+    const nodes=lvl[l]||[];
+    const slots=[];
+    // Erst Paare bilden (mit gemeinsamen Kindern → Familien-Knoten)
+    // dann Einzel-Personen
+    nodes.forEach(n=>{
+      if(assigned.has(n.id))return;
+      const partners=[...ptOf[n.id]].filter(pid=>gen[pid]===l&&!assigned.has(pid));
+      if(partners.length>0){
+        const pid=partners[0]; // ersten Partner nehmen
+        slots.push([n.id,pid]);
+        assigned.add(n.id); assigned.add(pid);
+      }
+    });
+    nodes.forEach(n=>{
+      if(!assigned.has(n.id)){slots.push([n.id]); assigned.add(n.id);}
+    });
+    slotsByGen[l]=slots;
+  });
+
+  // ── E: X-Positionen top-down ─────────────────
+  // Idee: Slots der obersten Ebene von links nach rechts anordnen.
+  // Dann Kinder-Slots unter ihre Familien-Knoten zentrieren.
+  const X={};
+  fams.forEach(f=>{X[f.id]=0;});
+
+  // Slot-Breite: Einzel = PW, Paar = PW+PX+PW (mit Lücke dazwischen)
+  function slotW(slot){return slot.length===2?PW*2+PX:PW;}
+  // Slot-Mitte
+  function slotCenter(slot){
+    return slot.length===2
+      ?(X[slot[0]]+PW + X[slot[1]])/2   // Mitte zwischen den zwei Partnern
+      :X[slot[0]]+PW/2;
+  }
+
+  // Positioniere einen Slot ab x
+  function placeSlot(slot,x){
+    if(slot.length===2){
+      X[slot[0]]=x;
+      X[slot[1]]=x+PW+PX;
+    }else{
+      X[slot[0]]=x;
+    }
+  }
+
+  // Hilfsfunktion: Familien-Knoten zwischen seine Eltern setzen
+  function placeFamNodes(){
+    fams.forEach(f=>{
+      const xs=f.parents.map(p=>X[p]+PW/2);
+      X[f.id]=xs.length?xs.reduce((a,b)=>a+b)/xs.length-FR:0;
+    });
+  }
+
+  // Hilfsfunktion: Kinder-Slots unter ihre Familien-Knoten zentrieren
+  function placeChildSlots(){
+    sortedL.forEach(l=>{
+      if(l!==Math.floor(l))return;
+      const slots=slotsByGen[l]||[];
+      slots.forEach(slot=>{
+        // Hat dieser Slot einen Familien-Knoten als Elternteil?
+        const myFams=fams.filter(f=>slot.some(id=>f.children.includes(id)));
+        if(!myFams.length)return;
+        const famCenter=myFams.reduce((s,f)=>s+X[f.id]+FR,0)/myFams.length;
+        const sw=slotW(slot);
+        placeSlot(slot, famCenter-sw/2);
+      });
+    });
+  }
+
+  // Überlappungen zwischen Slots in einer Generation auflösen
+  function fixOverlapSlots(l){
+    const slots=slotsByGen[l]||[]; if(!slots.length)return;
+    // nach X sortieren
+    slots.sort((a,b)=>X[a[0]]-X[b[0]]);
+    let curX=PX;
+    slots.forEach(slot=>{
+      if(X[slot[0]]<curX) placeSlot(slot,curX);
+      curX=X[slot[slot.length-1]]+PW+PX;
+    });
+    // Auch Familien-Knoten auf dieser Ebene fixieren
+    const famL=l+0.5;
+    const famNodes=(lvl[famL]||[]);
+    famNodes.sort((a,b)=>X[a.id]-X[b.id]);
+    let fcurX=PX;
+    famNodes.forEach(fn=>{
+      if(X[fn.id]<fcurX) X[fn.id]=fcurX;
+      fcurX=X[fn.id]+FR*2+PX;
+    });
+  }
+
+  // Initialisierung: oberste Ebene von links nach rechts
+  const topGen=sortedL.find(l=>l===Math.floor(l));
+  let startX=PX;
+  (slotsByGen[topGen]||[]).forEach(slot=>{
+    placeSlot(slot,startX);
+    startX+=slotW(slot)+PX*2;
+  });
+
+  // Iterieren: top-down dann bottom-up
+  for(let iter=0;iter<6;iter++){
+    placeFamNodes();
+    placeChildSlots();
+    sortedL.filter(l=>l===Math.floor(l)).forEach(fixOverlapSlots);
+    placeFamNodes();
+  }
+
+  // Normieren auf x>=PX
+  const minX=Math.min(...Object.values(X).filter(v=>!isNaN(v)));
+  Object.keys(X).forEach(k=>{X[k]-=minX-PX;});
+
+  // ── F: Y-Koordinaten ─────────────────────────
+  const Y={};
+  sortedL.forEach(l=>lvl[l].forEach(n=>{Y[n.id]=l*GY;}));
+
+  return{pById,X,Y,fams,ptOf,famById};
+}
+
+// ════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════
+async function run(){
+  // focus-Parameter aus URL übernehmen
+  const urlParams = new URLSearchParams(window.location.search);
+  const focusPk = urlParams.get('focus');
+  const apiUrl = focusPk
+    ? '{% url "tree_data" %}?focus=' + focusPk
+    : '{% url "tree_data" %}';
+  const raw=await fetch(apiUrl).then(r=>r.json());
+
+  // ── Debug-Panel ──────────────────────────
+  try {
+    const lo2=layout(raw);
+    const linkTypes={};
+    raw.links.forEach(l=>linkTypes[l.type]=(linkTypes[l.type]||0)+1);
+    const idType=raw.nodes.length?typeof raw.nodes[0].id:'?';
+    const srcType=raw.links.length?typeof raw.links[0].source:'?';
+    const xVals=Object.values(lo2.X);
+    const yVals=Object.values(lo2.Y);
+    document.getElementById('dbg').innerHTML=
+      '<b>Personen:</b> '+raw.nodes.length+
+      ' &nbsp;<b>Links:</b> '+JSON.stringify(linkTypes)+
+      ' &nbsp;<b>Familien-Knoten:</b> '+lo2.fams.length+
+      ' &nbsp;<b>ID-Typ:</b> '+idType+'/'+srcType+
+      ' &nbsp;<b>X:</b> '+Math.round(Math.min(...xVals))+'–'+Math.round(Math.max(...xVals))+
+      ' &nbsp;<b>Y:</b> '+Math.round(Math.min(...yVals))+'–'+Math.round(Math.max(...yVals));
+  } catch(e) {
+    document.getElementById('dbg').innerHTML='<span style="color:red"><b>Layout-Fehler:</b> '+e.message+'</span>';
+  }
+  // ─────────────────────────────────────────
+  draw(raw);
+  document.getElementById('dbg').innerHTML+=
+    ' &nbsp;<b>SVG-Zeichen:</b> '+document.querySelector('#tree-svg').innerHTML.length;
+}
+
+function draw(raw){
+  const wrap=document.getElementById('tree-wrap');
+  const W=wrap.clientWidth, H=wrap.clientHeight;
+  d3.select('#tree-svg').selectAll('*').remove();
+  const svg=d3.select('#tree-svg');
+  const g=svg.append('g');
+  const zoom=d3.zoom().scaleExtent([0.04,3]).on('zoom',e=>g.attr('transform',e.transform));
+  svg.call(zoom);
+
+  const lo=layout(raw);
+  const{pById,X,Y,fams,ptOf}=lo;
+
+  // Fit
+  const axs=Object.values(X), ays=Object.values(Y);
+  const bx=Math.min(...axs),bw=Math.max(...axs)+PW-bx;
+  const by=Math.min(...ays),bh=Math.max(...ays)+PH-by;
+  const sc=Math.min(.9,Math.min((W-40)/bw,(H-40)/bh));
+  const tx=(W-bw*sc)/2-bx*sc, ty=20-by*sc;
+  const fitTf=d3.zoomIdentity.translate(tx,ty).scale(sc);
+  function fitAll(){svg.transition().duration(400).call(zoom.transform,fitTf);}
+
+  // Fokus-Badge anzeigen
+  if(raw.focus){
+    const badge=document.getElementById('focus-badge');
+    const focusNode=raw.nodes.find(n=>n.id===raw.focus);
+    if(focusNode){
+      badge.innerHTML=
+        '<span class="badge bg-warning text-dark">' +
+        '<i class="bi bi-person-fill"></i> Fokus: '+focusNode.name+
+        ' &nbsp;<a href="/stammbaum/" class="text-dark text-decoration-none" title="Alle anzeigen">✕</a>'+
+        '</span>';
+    }
+  }
+  document.getElementById('bfit').onclick=fitAll;
+  document.getElementById('bzi').onclick=()=>svg.transition().duration(250).call(zoom.scaleBy,1.3);
+  document.getElementById('bzo').onclick=()=>svg.transition().duration(250).call(zoom.scaleBy,.77);
+  fitAll();
+
+  // Kanten-Layer
+  const eG=g.append('g');
+
+  // Partner-Linie: nur wenn die beiden nebeneinander liegen (Abstand <= PW+PX+10)
+  // Geschwister-Linien: keine – Geschwister sind über den Familien-Knoten verbunden
+  const dp=new Set();
+  raw.nodes.forEach(n=>{
+    ptOf[n.id].forEach(pid=>{
+      const key=[n.id,pid].sort().join('_');
+      if(dp.has(key))return; dp.add(key);
+      if(Y[n.id]===undefined||Y[pid]===undefined)return;
+      const[lid,rid]=X[n.id]<X[pid]?[n.id,pid]:[pid,n.id];
+      // Linie nur zeichnen wenn sie auf gleicher Y-Ebene sind
+      if(Math.abs(Y[lid]-Y[rid])>5)return;
+      eG.append('line').attr('class','e-partner')
+        .attr('x1',X[lid]+PW).attr('y1',Y[lid]+PH/2)
+        .attr('x2',X[rid]).attr('y2',Y[rid]+PH/2);
+    });
+  });
+
+  // Eltern→Fam-Knoten und Fam-Knoten→Kinder
+  fams.forEach(f=>{
+    const fx=X[f.id]+FR, fy=Y[f.id]+FR;
+    f.parents.forEach(pid=>{
+      const px=X[pid]+PW/2, py=Y[pid]+PH;
+      const my=(py+fy-FR)/2;
+      eG.append('path').attr('class','e-parent')
+        .attr('d',`M${px},${py} C${px},${my} ${fx},${my} ${fx},${fy-FR}`);
+    });
+    f.children.forEach(cid=>{
+      const cx=X[cid]+PW/2, cy=Y[cid];
+      const my=(fy+FR+cy)/2;
+      eG.append('path').attr('class','e-parent')
+        .attr('d',`M${fx},${fy+FR} C${fx},${my} ${cx},${my} ${cx},${cy}`);
+    });
+  });
+
+  // Familien-Rauten
+  fams.forEach(f=>{
+    const fx=X[f.id]+FR, fy=Y[f.id]+FR;
+    g.append('g').attr('class','f-node').append('polygon')
+      .attr('points',`${fx},${fy-FR} ${fx+FR},${fy} ${fx},${fy+FR} ${fx-FR},${fy}`);
+  });
+
+  // Personen-Knoten
+  const tip=document.getElementById('tip');
+  raw.nodes.forEach(n=>{
+    const x=X[n.id],y=Y[n.id];
+    let cls='p-node ';
+    if(n.deceased)cls+='deceased';
+    else if(n.gender==='M')cls+='male';
+    else if(n.gender==='F')cls+='female';
+    else cls+='other';
+
+    const grp=g.append('g').attr('class',cls)
+      .attr('transform',`translate(${x},${y})`)
+      .on('click',()=>location.href=`/personen/${n.id}/`)
+      .on('mouseover',()=>{
+        tip.style.display='block';
+        let h=`<strong>${n.name}</strong>`;
+        if(n.birth_year)h+=`<br>* ${n.birth_year}`;
+        if(n.deceased)h+=`<br><em>verstorben</em>`;
+        tip.innerHTML=h;
+      })
+      .on('mousemove',(e)=>{
+        tip.style.left=(e.offsetX+14)+'px';
+        tip.style.top=(e.offsetY-44)+'px';
+      })
+      .on('mouseout',()=>tip.style.display='none');
+
+    grp.append('rect').attr('width',PW).attr('height',PH).attr('rx',8)
+      .attr('stroke-width', n.focus ? 4 : 2)
+      .style('filter', n.focus ? 'drop-shadow(0 0 8px #f59e0b)' : null);
+
+    const parts=n.name.trim().split(' ');
+    const last=parts.pop()||'';
+    const first=parts.join(' ');
+    const fc=n.deceased?'#6b7280':'#0f172a';
+
+    if(first){
+      grp.append('text').attr('x',PW/2).attr('y',16)
+        .attr('text-anchor','middle').attr('font-size','10.5px').attr('fill',fc)
+        .text(first.length>16?first.slice(0,15)+'…':first);
+      grp.append('text').attr('x',PW/2).attr('y',30)
+        .attr('text-anchor','middle').attr('font-size','11.5px').attr('font-weight','bold').attr('fill',fc)
+        .text(last.length>16?last.slice(0,15)+'…':last);
+    }else{
+      grp.append('text').attr('x',PW/2).attr('y',25)
+        .attr('text-anchor','middle').attr('font-size','11px').attr('fill',fc)
+        .text(n.name.length>16?n.name.slice(0,15)+'…':n.name);
+    }
+    if(n.birth_year){
+      grp.append('text').attr('x',PW/2).attr('y',PH-3)
+        .attr('text-anchor','middle').attr('font-size','9px').attr('fill','#94a3b8')
+        .text('*'+n.birth_year);
+    }
+  });
+
+  document.getElementById('chk-dec').onchange=function(){
+    g.selectAll('.p-node.deceased').style('display',this.checked?null:'none');
+  };
+}
+
+run();
+window.addEventListener('resize',run);
+</script>
+{% endblock %}
