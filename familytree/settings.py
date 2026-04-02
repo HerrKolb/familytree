@@ -2,12 +2,16 @@
 FamilyTree – Django Settings
 """
 from pathlib import Path
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'change-me-in-production-use-a-long-random-string'
+# Sensible Werte aus Umgebungsvariablen lesen
+# Fallback-Werte nur für lokale Entwicklung
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'change-me-in-production-use-a-long-random-string')
 
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']  # Im Heimnetz: alle IPs erlauben
 
@@ -56,11 +60,11 @@ WSGI_APPLICATION = 'familytree.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'familytree',
-        'USER': 'root',           # MySQL-Benutzer anpassen
-        'PASSWORD': 'Anfang1!',   # MySQL-Passwort anpassen
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME':     os.environ.get('DB_NAME',     'familytree'),
+        'USER':     os.environ.get('DB_USER',     'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST':     os.environ.get('DB_HOST',     'localhost'),
+        'PORT':     os.environ.get('DB_PORT',     '3306'),
         'OPTIONS': {
             'charset': 'utf8mb4',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -97,14 +101,13 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
 # --- E-Mail (Einladungen) ---
-# Für Gmail: App-Passwort unter Google-Konto erstellen
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'deine@gmail.com'      # Anpassen
-EMAIL_HOST_PASSWORD = 'dein-app-passwort' # Anpassen
-DEFAULT_FROM_EMAIL = 'FamilyTree <deine@gmail.com>'
+EMAIL_HOST_USER     = os.environ.get('EMAIL_USER',     'deine@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASSWORD', '')
+DEFAULT_FROM_EMAIL  = f'FamilyTree <{os.environ.get("EMAIL_USER", "deine@gmail.com")}>'
 
 # Einladungs-Token Gültigkeit in Stunden
 INVITATION_EXPIRY_HOURS = 168  # 7 Tage

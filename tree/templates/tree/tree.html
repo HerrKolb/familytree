@@ -39,6 +39,14 @@
     <button id="bzo"  class="btn btn-sm btn-light border"><i class="bi bi-zoom-out"></i></button>
     <button id="bfit" class="btn btn-sm btn-light border"><i class="bi bi-arrows-fullscreen"></i> Alles</button>
     <div id="focus-badge"></div>
+    <div class="btn-group">
+      <button id="bpng" class="btn btn-sm btn-light border" title="Als PNG speichern">
+        <i class="bi bi-image"></i> PNG
+      </button>
+      <button id="bpdf" class="btn btn-sm btn-light border" title="Als PDF speichern">
+        <i class="bi bi-file-earmark-pdf"></i> PDF
+      </button>
+    </div>
     <div class="form-check form-switch d-flex align-items-center bg-white border rounded px-2 py-1 mb-0">
       <input class="form-check-input me-1" type="checkbox" id="chk-dec" checked>
       <label class="form-check-label small mb-0" for="chk-dec">Verstorbene</label>
@@ -47,7 +55,6 @@
   <svg id="tree-svg"></svg>
   <div id="tip"></div>
 </div>
-<div id="dbg" class="mt-2 p-2 bg-light border rounded small" style="font-size:11px;font-family:monospace">Lade Debug-Infos...</div>
 <div class="mt-2 d-flex gap-4 small text-muted flex-wrap">
   <span><svg width="18" height="12"><rect x="1" y="2" width="16" height="8" rx="2" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/></svg> Mann</span>
   <span><svg width="18" height="12"><rect x="1" y="2" width="16" height="8" rx="2" fill="#fce7f3" stroke="#ec4899" stroke-width="1.5"/></svg> Frau</span>
@@ -256,31 +263,13 @@ async function run(){
   const apiUrl = focusPk
     ? '{% url "tree_data" %}?focus=' + focusPk
     : '{% url "tree_data" %}';
-  const raw=await fetch(apiUrl).then(r=>r.json());
-
-  // ── Debug-Panel ──────────────────────────
   try {
-    const lo2=layout(raw);
-    const linkTypes={};
-    raw.links.forEach(l=>linkTypes[l.type]=(linkTypes[l.type]||0)+1);
-    const idType=raw.nodes.length?typeof raw.nodes[0].id:'?';
-    const srcType=raw.links.length?typeof raw.links[0].source:'?';
-    const xVals=Object.values(lo2.X);
-    const yVals=Object.values(lo2.Y);
-    document.getElementById('dbg').innerHTML=
-      '<b>Personen:</b> '+raw.nodes.length+
-      ' &nbsp;<b>Links:</b> '+JSON.stringify(linkTypes)+
-      ' &nbsp;<b>Familien-Knoten:</b> '+lo2.fams.length+
-      ' &nbsp;<b>ID-Typ:</b> '+idType+'/'+srcType+
-      ' &nbsp;<b>X:</b> '+Math.round(Math.min(...xVals))+'–'+Math.round(Math.max(...xVals))+
-      ' &nbsp;<b>Y:</b> '+Math.round(Math.min(...yVals))+'–'+Math.round(Math.max(...yVals));
+    const raw=await fetch(apiUrl).then(r=>r.json());
+    draw(raw);
   } catch(e) {
-    document.getElementById('dbg').innerHTML='<span style="color:red"><b>Layout-Fehler:</b> '+e.message+'</span>';
+    document.getElementById('tree-wrap').innerHTML =
+      '<div class="alert alert-danger m-3"><strong>Fehler:</strong> ' + e.message + '</div>';
   }
-  // ─────────────────────────────────────────
-  draw(raw);
-  document.getElementById('dbg').innerHTML+=
-    ' &nbsp;<b>SVG-Zeichen:</b> '+document.querySelector('#tree-svg').innerHTML.length;
 }
 
 function draw(raw){
@@ -426,5 +415,148 @@ function draw(raw){
 
 run();
 window.addEventListener('resize',run);
+
+// ════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════
+function exportSVGtoCanvas(callback) {
+  const svgEl = document.getElementById('tree-svg');
+  const wrap   = document.getElementById('tree-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+
+  // SVG klonen
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('width',  W);
+  clone.setAttribute('height', H);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+  // Alle berechneten CSS-Styles inline schreiben (damit Canvas sie kennt)
+  const srcNodes = svgEl.querySelectorAll('*');
+  const dstNodes = clone.querySelectorAll('*');
+  srcNodes.forEach(function(src, i) {
+    const dst = dstNodes[i];
+    if (!dst) return;
+    const cs = window.getComputedStyle(src);
+    // Nur relevante SVG-Eigenschaften übernehmen
+    const props = ['fill','stroke','stroke-width','stroke-dasharray',
+                   'font-size','font-family','font-weight','text-anchor',
+                   'display','opacity'];
+    props.forEach(function(p) {
+      const v = cs.getPropertyValue(p);
+      if (v && v !== '' && v !== 'none' && v !== 'normal') {
+        dst.style[p] = v;
+      }
+    });
+    // fill direkt als Attribut setzen falls noch nicht vorhanden
+    if (src.tagName === 'rect' || src.tagName === 'polygon' || src.tagName === 'line' || src.tagName === 'path') {
+      const fill = cs.getPropertyValue('fill');
+      if (fill) dst.setAttribute('fill', fill);
+      const stroke = cs.getPropertyValue('stroke');
+      if (stroke) dst.setAttribute('stroke', stroke);
+      const sw = cs.getPropertyValue('stroke-width');
+      if (sw) dst.setAttribute('stroke-width', sw);
+    }
+    if (src.tagName === 'text') {
+      const fill = cs.getPropertyValue('fill');
+      if (fill) dst.setAttribute('fill', fill);
+    }
+  });
+
+  // Weißen Hintergrund als erstes Element einfügen
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('width',  '100%');
+  bg.setAttribute('height', '100%');
+  bg.setAttribute('fill',   'white');
+  clone.insertBefore(bg, clone.firstChild);
+
+  const svgData = new XMLSerializer().serializeToString(clone);
+  const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(svgBlob);
+
+  const img = new Image();
+  img.onload = function() {
+    const scale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width  = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(img, 0, 0, W, H);
+    URL.revokeObjectURL(url);
+    callback(canvas);
+  };
+  img.onerror = function() {
+    URL.revokeObjectURL(url);
+    // Fallback: leeres Canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = W * 2; canvas.height = H * 2;
+    callback(canvas);
+  };
+  img.src = url;
+}
+
+// PNG-Export
+document.getElementById('bpng').onclick = function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+  exportSVGtoCanvas(function(canvas) {
+    const a = document.createElement('a');
+    a.download = 'stammbaum.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-image"></i> PNG';
+  });
+};
+
+// PDF-Export (via jsPDF)
+document.getElementById('bpdf').onclick = function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+
+  // jsPDF dynamisch laden falls noch nicht geladen
+  function doPDF() {
+    exportSVGtoCanvas(function(canvas) {
+      const wrap = document.getElementById('tree-wrap');
+      const W = wrap.clientWidth, H = wrap.clientHeight;
+      // Querformat wenn breiter als hoch
+      const orient = W > H ? 'l' : 'p';
+      const pdf = new window.jspdf.jsPDF({
+        orientation: orient,
+        unit: 'px',
+        format: [W, H],
+        hotfixes: ['px_scaling'],
+      });
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, 0, W, H);
+      // Titel und Datum als Metadaten
+      pdf.setProperties({
+        title: 'Stammbaum',
+        creator: 'FamilyTree'
+      });
+      pdf.save('stammbaum.pdf');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> PDF';
+    });
+  }
+
+  if (window.jspdf) {
+    doPDF();
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    script.onload = doPDF;
+    script.onerror = function() {
+      alert('jsPDF konnte nicht geladen werden. Bitte PNG-Export verwenden.');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> PDF';
+    };
+    document.head.appendChild(script);
+  }
+};
 </script>
 {% endblock %}
