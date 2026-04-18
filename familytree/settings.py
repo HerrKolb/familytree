@@ -102,12 +102,12 @@ LOGOUT_REDIRECT_URL = '/login/'
 
 # --- E-Mail (Einladungen) ---
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp.ionos.de'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER     = os.environ.get('EMAIL_USER',     'deine@gmail.com')
+EMAIL_HOST_USER     = os.environ.get('EMAIL_USER',     'rainer.kolb@beikolbs.de')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASSWORD', '')
-DEFAULT_FROM_EMAIL  = f'FamilyTree <{os.environ.get("EMAIL_USER", "deine@gmail.com")}>'
+DEFAULT_FROM_EMAIL  = f'FamilyTree <{os.environ.get("EMAIL_USER", "rainer.kolb@beikolbs.de")}>'
 
 # Einladungs-Token Gültigkeit in Stunden
 INVITATION_EXPIRY_HOURS = 168  # 7 Tage

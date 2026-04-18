@@ -48,6 +48,25 @@ class PersonForm(forms.ModelForm):
 class RelationshipForm(forms.ModelForm):
     """Formular zum Verknüpfen zweier Personen."""
 
+    # Erweiterte Auswahl inkl. umgekehrter Richtungen
+    RELATION_TYPE_CHOICES = [
+        ('', '--- Bitte wählen ---'),
+        ('partner',          'Partner / Ehepartner'),
+        ('parent',           'Elternteil → Kind (ich bin Elternteil)'),
+        ('parent_reverse',   'Kind → Elternteil (ich bin das Kind)'),
+        ('adoptive',         'Adoptiv-Elternteil → Kind (ich bin Adoptiv-Elternteil)'),
+        ('adoptive_reverse', 'Adoptivkind → Elternteil (ich bin das Adoptivkind)'),
+        ('sibling',          'Geschwister'),
+        ('half',             'Halbgeschwister'),
+    ]
+
+    # Eigenes Feld statt Model-Feld für Beziehungstyp
+    relation_type = forms.ChoiceField(
+        choices=RELATION_TYPE_CHOICES,
+        label='Beziehungstyp',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = Relationship
         fields = ['from_person', 'to_person', 'relation_type', 'note',
@@ -55,7 +74,6 @@ class RelationshipForm(forms.ModelForm):
         widgets = {
             'from_person':    forms.Select(attrs={'class': 'form-select'}),
             'to_person':      forms.Select(attrs={'class': 'form-select'}),
-            'relation_type':  forms.Select(attrs={'class': 'form-select'}),
             'note':           forms.TextInput(attrs={'class': 'form-control'}),
             'marriage_date':  forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}, format='%Y-%m-%d'),
             'marriage_place': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'z.B. München, Standesamt Maxvorstadt'}),
@@ -64,7 +82,6 @@ class RelationshipForm(forms.ModelForm):
         labels = {
             'from_person':    'Von Person',
             'to_person':      'Zu Person',
-            'relation_type':  'Beziehungstyp',
             'note':           'Anmerkung (optional)',
             'marriage_date':  'Heiratsdatum',
             'marriage_place': 'Heiratsort',
@@ -74,16 +91,38 @@ class RelationshipForm(forms.ModelForm):
     def __init__(self, *args, exclude_person=None, **kwargs):
         super().__init__(*args, **kwargs)
         qs_all = Person.objects.all().order_by('last_name', 'first_name')
-        # from_person: alle Personen (damit die vorausgewählte Person sichtbar bleibt)
         self.fields['from_person'].queryset = qs_all
-        # to_person: aktuelle Person ausschließen (man kann keine Beziehung zu sich selbst anlegen)
         if exclude_person:
             self.fields['to_person'].queryset = qs_all.exclude(pk=exclude_person.pk)
         else:
             self.fields['to_person'].queryset = qs_all
-        # Select2: durchsuchbare Dropdown-Listen
         self.fields['from_person'].widget.attrs['class'] = 'form-select select2'
         self.fields['to_person'].widget.attrs['class'] = 'form-select select2'
+
+    def clean_relation_type(self):
+        value = self.cleaned_data.get('relation_type')
+        if not value:
+            raise forms.ValidationError('Bitte einen Beziehungstyp auswählen.')
+        return value
+
+    def save(self, commit=True):
+        """Umgekehrte Beziehungstypen automatisch korrigieren."""
+        instance = super().save(commit=False)
+        rel_type = self.cleaned_data['relation_type']
+
+        # Umgekehrte Typen: from/to tauschen und echten Typ setzen
+        if rel_type == 'parent_reverse':
+            instance.from_person, instance.to_person = instance.to_person, instance.from_person
+            instance.relation_type = 'parent'
+        elif rel_type == 'adoptive_reverse':
+            instance.from_person, instance.to_person = instance.to_person, instance.from_person
+            instance.relation_type = 'adoptive'
+        else:
+            instance.relation_type = rel_type
+
+        if commit:
+            instance.save()
+        return instance
 
 
 class InvitationForm(forms.Form):

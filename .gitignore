@@ -1,35 +1,47 @@
-# Python
+# ── Python ──────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-.Python
-*.egg-info/
-dist/
-build/
+*.so
 
-# Virtuelle Umgebung
+# ── Virtuelle Umgebung ───────────────────────────────────────
 venv/
 env/
+.env/
 .venv/
 
-# Django
+# ── Django ───────────────────────────────────────────────────
 *.log
 local_settings.py
 db.sqlite3
-staticfiles/
+db.sqlite3-journal
 media/
 
-# IDE
-.vscode/
+# Statische Dateien (werden per collectstatic generiert)
+staticfiles/
+static_root/
+
+# ── Umgebungsvariablen ───────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── IDE / Editor ─────────────────────────────────────────────
 .idea/
+.vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Umgebungsvariablen
-.env
-.env.local
+# ── Test / Coverage ──────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+
+# ── Distribution / Build ─────────────────────────────────────
+dist/
+build/
+*.egg-info/
