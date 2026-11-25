@@ -15,8 +15,6 @@ urlpatterns = [
     path('personen/<int:person_pk>/beziehungen/',      views.relationship_list,   name='relationship_list'),
     path('beziehung/<int:pk>/bearbeiten/',             views.relationship_edit,   name='relationship_edit'),
     path('beziehung/<int:pk>/loeschen/',               views.relationship_delete, name='relationship_delete'),
-    path('einladen/',                      views.invite,               name='invite'),
     path('personen/csv-import/',           csv_import_view,            name='csv_import'),
-    path('register/<uuid:token>/',         views.register,             name='register'),
     path('mein-profil/',                   views.my_profile,           name='my_profile'),
 ]

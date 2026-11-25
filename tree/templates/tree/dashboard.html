@@ -138,15 +138,5 @@
       </div>
     </a>
   </div>
-  {% if user.family_profile.is_admin or user.is_staff %}
-  <div class="col-sm-3">
-    <a href="{% url 'invite' %}" class="card text-center text-decoration-none h-100 card-hover">
-      <div class="card-body">
-        <i class="bi bi-envelope-plus display-5 text-danger"></i>
-        <div class="mt-2 fw-semibold">Einladen</div>
-      </div>
-    </a>
-  </div>
-  {% endif %}
 </div>
 {% endblock %}
